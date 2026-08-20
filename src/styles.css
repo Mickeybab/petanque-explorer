@@ -1,0 +1,913 @@
+/* ==========================================================================
+   Tournoi de pétanque — Labruyère-Dorsa
+
+   Direction : l'application se tient dehors, au bord du terrain, souvent en
+   plein soleil. D'où un fond clair très lisible plutôt qu'une interface
+   sombre. La palette vient du jeu lui-même : la poussière du terrain, l'encre
+   d'ardoise du tableau de marque, l'acier des boules, et un seul accent —
+   le jaune du cochonnet.
+   ========================================================================== */
+
+:root {
+  --gravier: #e7eae6;
+  --gravier-creux: #dde1dc;
+  --craie: #fbfcfb;
+  --ardoise: #1d2328;
+  --acier: #707c86;
+  --cochonnet: #f2b705;
+
+  --filet: rgba(29, 35, 40, 0.13);
+  --filet-fort: rgba(29, 35, 40, 0.3);
+  --ombre: 0 1px 2px rgba(29, 35, 40, 0.05), 0 10px 26px -14px rgba(29, 35, 40, 0.22);
+
+  --display: 'Bricolage Grotesque', 'Helvetica Neue', Helvetica, sans-serif;
+  --corps: 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
+  --data: 'IBM Plex Mono', ui-monospace, 'SF Mono', monospace;
+
+  --gouttiere: 1.25rem;
+  --rayon: 16px;
+  --rayon-petit: 10px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--gravier);
+  color: var(--ardoise);
+  font-family: var(--corps);
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+button,
+input {
+  font: inherit;
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 3px solid var(--cochonnet);
+  outline-offset: 2px;
+}
+
+/* --------------------------------------------------------------------------
+   Ossature
+   -------------------------------------------------------------------------- */
+
+.appli {
+  max-width: 62rem;
+  margin: 0 auto;
+  padding: 0 var(--gouttiere) 5rem;
+}
+
+.section {
+  margin-top: 1.75rem;
+}
+
+.section__titre {
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: 1.25rem;
+  letter-spacing: -0.015em;
+  margin: 0 0 0.25rem;
+}
+
+.section__note {
+  margin: 0 0 1.25rem;
+  color: var(--acier);
+  font-size: 0.9375rem;
+}
+
+/* --------------------------------------------------------------------------
+   En-tête
+   -------------------------------------------------------------------------- */
+
+.entete {
+  padding: 1.5rem 0 0.5rem;
+}
+
+.entete__club {
+  font-family: var(--data);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--acier);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.entete__club::before {
+  content: '';
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--cochonnet);
+  flex: none;
+}
+
+.entete__barre {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.entete__titre {
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: clamp(1.75rem, 1.2rem + 2.2vw, 3rem);
+  line-height: 1.03;
+  letter-spacing: -0.03em;
+  margin: 0;
+  max-width: 34rem;
+  flex: 1 1 18rem;
+}
+
+/* Le nom s'édite sur place : affiché il retourne à la ligne, saisi il tient
+   sur une seule. */
+.entete__nom,
+.entete__champ-titre {
+  font: inherit;
+  letter-spacing: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  border-bottom: 2px dashed transparent;
+  padding: 0;
+  margin: 0;
+  width: 100%;
+  display: block;
+  text-align: left;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.entete__nom {
+  cursor: text;
+}
+
+.entete__nom:hover {
+  border-bottom-color: var(--filet);
+}
+
+.entete__champ-titre:focus {
+  outline: none;
+  border-bottom-color: var(--cochonnet);
+}
+
+.entete__outils {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+/* --------------------------------------------------------------------------
+   Onglets
+   -------------------------------------------------------------------------- */
+
+.onglets {
+  display: flex;
+  gap: 0.25rem;
+  margin-top: 1.5rem;
+  border-bottom: 1px solid var(--filet);
+}
+
+.onglet {
+  appearance: none;
+  background: none;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  padding: 0.75rem 0.875rem;
+  font-weight: 500;
+  color: var(--acier);
+  cursor: pointer;
+  border-radius: var(--rayon-petit) var(--rayon-petit) 0 0;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.onglet:hover {
+  color: var(--ardoise);
+}
+
+.onglet[aria-selected='true'] {
+  color: var(--ardoise);
+  font-weight: 600;
+  border-bottom-color: var(--ardoise);
+}
+
+.onglet__compteur {
+  font-family: var(--data);
+  font-size: 0.8125rem;
+  color: var(--acier);
+  margin-left: 0.375rem;
+}
+
+/* --------------------------------------------------------------------------
+   Boutons
+   -------------------------------------------------------------------------- */
+
+.bouton {
+  appearance: none;
+  border: 1px solid var(--filet-fort);
+  background: transparent;
+  color: var(--ardoise);
+  border-radius: 999px;
+  padding: 0.5rem 1rem;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.bouton:hover:not(:disabled) {
+  background: rgba(29, 35, 40, 0.06);
+}
+
+.bouton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.bouton--primaire {
+  background: var(--ardoise);
+  border-color: var(--ardoise);
+  color: var(--craie);
+  font-weight: 600;
+  padding: 0.75rem 1.5rem;
+}
+
+.bouton--primaire:hover:not(:disabled) {
+  background: #000;
+}
+
+.bouton--discret {
+  border-color: transparent;
+  color: var(--acier);
+  padding: 0.5rem 0.75rem;
+}
+
+.bouton--discret:hover:not(:disabled) {
+  color: var(--ardoise);
+}
+
+.bouton--danger:hover:not(:disabled) {
+  color: #a3341f;
+  background: rgba(163, 52, 31, 0.08);
+}
+
+/* --------------------------------------------------------------------------
+   Saisie des équipes
+   -------------------------------------------------------------------------- */
+
+.saisie {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.champ {
+  flex: 1;
+  min-width: 0;
+  background: var(--craie);
+  border: 1px solid var(--filet-fort);
+  border-radius: var(--rayon-petit);
+  padding: 0.75rem 1rem;
+}
+
+.champ:focus {
+  outline: none;
+  border-color: var(--ardoise);
+  box-shadow: 0 0 0 3px rgba(242, 183, 5, 0.35);
+}
+
+.equipes {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  background: var(--craie);
+  border: 1px solid var(--filet);
+  border-radius: var(--rayon);
+  overflow: hidden;
+  box-shadow: var(--ombre);
+}
+
+.equipe {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.5rem 0.5rem 1rem;
+  border-top: 1px solid var(--filet);
+}
+
+.equipe:first-child {
+  border-top: 0;
+}
+
+.equipe__numero {
+  font-family: var(--data);
+  font-size: 0.8125rem;
+  color: var(--acier);
+  min-width: 1.75rem;
+  flex: none;
+}
+
+.equipe__nom {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: none;
+  padding: 0.375rem 0.25rem;
+  border-radius: 6px;
+  font-weight: 500;
+}
+
+.equipe__nom:hover {
+  background: rgba(29, 35, 40, 0.04);
+}
+
+.equipe__nom:focus {
+  outline: none;
+  background: rgba(242, 183, 5, 0.18);
+}
+
+.vide {
+  background: var(--craie);
+  border: 1px dashed var(--filet-fort);
+  border-radius: var(--rayon);
+  padding: 2.5rem 1.5rem;
+  text-align: center;
+  color: var(--acier);
+}
+
+.avis {
+  display: flex;
+  gap: 0.625rem;
+  align-items: flex-start;
+  margin-top: 1.25rem;
+  padding: 0.875rem 1rem;
+  border-radius: var(--rayon-petit);
+  background: rgba(242, 183, 5, 0.14);
+  font-size: 0.9375rem;
+}
+
+.avis::before {
+  content: '';
+  width: 0.625rem;
+  height: 0.625rem;
+  border-radius: 50%;
+  background: var(--cochonnet);
+  flex: none;
+  margin-top: 0.375rem;
+}
+
+.avis--erreur {
+  background: rgba(163, 52, 31, 0.12);
+}
+
+.avis--erreur::before {
+  background: #a3341f;
+}
+
+/* --------------------------------------------------------------------------
+   Sélecteur de tour
+   -------------------------------------------------------------------------- */
+
+.tours {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.tour-puce {
+  appearance: none;
+  cursor: pointer;
+  background: var(--craie);
+  border: 1px solid var(--filet-fort);
+  border-radius: 999px;
+  padding: 0.4375rem 0.9375rem;
+  font-family: var(--data);
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--acier);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4375rem;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.tour-puce:disabled {
+  cursor: not-allowed;
+  background: transparent;
+  border-style: dashed;
+  opacity: 0.55;
+}
+
+.tour-puce[aria-current='true'] {
+  background: var(--ardoise);
+  border-color: var(--ardoise);
+  color: var(--craie);
+}
+
+.tour-puce__etat {
+  width: 0.4375rem;
+  height: 0.4375rem;
+  border-radius: 50%;
+  background: var(--cochonnet);
+}
+
+.tour-puce__etat--fini {
+  background: currentColor;
+  opacity: 0.45;
+}
+
+/* --------------------------------------------------------------------------
+   Matchs
+   -------------------------------------------------------------------------- */
+
+.matchs {
+  display: grid;
+  gap: 0.875rem;
+  grid-template-columns: repeat(auto-fill, minmax(19rem, 1fr));
+}
+
+.match {
+  background: var(--craie);
+  border: 1px solid var(--filet);
+  border-radius: var(--rayon);
+  padding: 0.875rem 1rem 1rem;
+  box-shadow: var(--ombre);
+}
+
+.match__entete {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--data);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--acier);
+  margin-bottom: 0.625rem;
+}
+
+.etiquette {
+  font-family: var(--data);
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 0.1875rem 0.5rem;
+  border-radius: 999px;
+  background: rgba(242, 183, 5, 0.25);
+  color: #7a5c00;
+  letter-spacing: 0.08em;
+}
+
+.camp {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.375rem 0;
+}
+
+.camp + .camp {
+  border-top: 1px solid var(--filet);
+  padding-top: 0.625rem;
+  margin-top: 0.25rem;
+}
+
+.camp__nom {
+  flex: 1;
+  min-width: 0;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+  color: var(--acier);
+  transition: color 0.15s ease;
+}
+
+.camp--vainqueur .camp__nom {
+  color: var(--ardoise);
+  font-weight: 600;
+}
+
+.camp--attente .camp__nom {
+  color: var(--ardoise);
+}
+
+.score {
+  flex: none;
+  width: 4.25rem;
+  height: 3.25rem;
+  text-align: center;
+  font-family: var(--data);
+  font-size: 1.5rem;
+  font-weight: 600;
+  background: var(--gravier);
+  border: 1px solid transparent;
+  border-radius: var(--rayon-petit);
+  -moz-appearance: textfield;
+}
+
+.score::-webkit-outer-spin-button,
+.score::-webkit-inner-spin-button {
+  appearance: none;
+  margin: 0;
+}
+
+.score::placeholder {
+  color: var(--acier);
+  opacity: 0.5;
+}
+
+.score:focus {
+  outline: none;
+  background: var(--craie);
+  border-color: var(--ardoise);
+  box-shadow: 0 0 0 3px rgba(242, 183, 5, 0.4);
+}
+
+.score--fige {
+  color: var(--acier);
+}
+
+.match--bye {
+  align-self: start;
+  border-style: dashed;
+  box-shadow: none;
+  background: transparent;
+}
+
+.match__mention {
+  margin: 0.375rem 0 0;
+  font-size: 0.875rem;
+  color: var(--acier);
+}
+
+/* L'apparition du tirage : le seul moment animé de l'application. */
+@media (prefers-reduced-motion: no-preference) {
+  .match {
+    animation: tirage 260ms cubic-bezier(0.2, 0.7, 0.3, 1) backwards;
+  }
+}
+
+@keyframes tirage {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Classement
+
+   Élément signature : le goal-average n'est pas un simple nombre mais une
+   mesure, tracée de part et d'autre du zéro comme on mesure l'écart des
+   boules au cochonnet. Le point jaune marque la valeur atteinte.
+   -------------------------------------------------------------------------- */
+
+.classement {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  background: var(--craie);
+  border: 1px solid var(--filet);
+  border-radius: var(--rayon);
+  overflow: hidden;
+  box-shadow: var(--ombre);
+}
+
+.rang-ligne {
+  display: grid;
+  gap: 0.125rem 0.75rem;
+  padding: 0.875rem 1rem;
+  border-top: 1px solid var(--filet);
+  grid-template-columns: 2rem 1fr auto;
+  grid-template-areas:
+    'rang nom diff'
+    '. stats stats'
+    '. mesure mesure';
+  align-items: center;
+}
+
+.rang-ligne:first-child {
+  border-top: 0;
+}
+
+.rang-ligne--entete {
+  display: none;
+}
+
+.rang-ligne--podium {
+  background: rgba(242, 183, 5, 0.09);
+}
+
+.rang-ligne__rang {
+  grid-area: rang;
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: 1.25rem;
+  color: var(--acier);
+}
+
+.rang-ligne--podium .rang-ligne__rang {
+  color: var(--ardoise);
+}
+
+.rang-ligne__nom {
+  grid-area: nom;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.rang-ligne__diff {
+  grid-area: diff;
+  font-family: var(--data);
+  font-weight: 600;
+  font-size: 1.125rem;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.rang-ligne__stats {
+  grid-area: stats;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  font-family: var(--data);
+  font-size: 0.8125rem;
+  color: var(--acier);
+  font-variant-numeric: tabular-nums;
+}
+
+.rang-ligne__stats b {
+  font-weight: 600;
+  color: var(--ardoise);
+}
+
+.rang-ligne__mesure {
+  grid-area: mesure;
+  margin-top: 0.375rem;
+}
+
+.mesure {
+  position: relative;
+  height: 1.125rem;
+}
+
+/* Le ruban gradué : traits fins réguliers, trait fort au zéro. */
+.mesure__ruban {
+  position: absolute;
+  inset: auto 0 0;
+  height: 0.5rem;
+  border-bottom: 1px solid var(--filet);
+  background-image: repeating-linear-gradient(
+    to right,
+    var(--filet) 0 1px,
+    transparent 1px 12.5%
+  );
+}
+
+.mesure__zero {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 1px;
+  height: 1.125rem;
+  background: var(--filet-fort);
+}
+
+.mesure__trait {
+  position: absolute;
+  bottom: 0.1875rem;
+  height: 0.25rem;
+  border-radius: 999px;
+  background: var(--ardoise);
+}
+
+.mesure__trait--negatif {
+  background: var(--acier);
+}
+
+.mesure__point {
+  position: absolute;
+  bottom: 0.0625rem;
+  width: 0.5625rem;
+  height: 0.5625rem;
+  border-radius: 50%;
+  background: var(--cochonnet);
+  transform: translateX(-50%);
+}
+
+/* --------------------------------------------------------------------------
+   Podium final
+   -------------------------------------------------------------------------- */
+
+.podium {
+  background: var(--ardoise);
+  color: var(--craie);
+  border-radius: var(--rayon);
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.podium__titre {
+  font-family: var(--data);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--cochonnet);
+  margin: 0 0 1rem;
+}
+
+.podium__liste {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.podium__place {
+  display: flex;
+  align-items: baseline;
+  gap: 0.875rem;
+}
+
+.podium__rang {
+  font-family: var(--data);
+  font-size: 0.875rem;
+  color: var(--acier);
+  flex: none;
+}
+
+.podium__nom {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 1.375rem;
+  letter-spacing: -0.02em;
+  overflow-wrap: anywhere;
+}
+
+.podium__place:first-child .podium__nom {
+  font-size: 1.875rem;
+  color: var(--cochonnet);
+}
+
+.podium__bilan {
+  margin-left: auto;
+  font-family: var(--data);
+  font-size: 0.8125rem;
+  color: var(--acier);
+  flex: none;
+}
+
+/* --------------------------------------------------------------------------
+   Écrans larges
+   -------------------------------------------------------------------------- */
+
+@media (min-width: 46rem) {
+  .rang-ligne {
+    grid-template-columns: 2.5rem minmax(0, 1fr) 11rem 2.75rem 2.75rem 4rem 4rem 4rem;
+    grid-template-areas: 'rang nom mesure j v moins plus diff';
+    gap: 0.75rem;
+    align-items: center;
+  }
+
+  .rang-ligne__mesure {
+    margin-top: 0;
+  }
+
+  .rang-ligne__stats {
+    display: contents;
+  }
+
+  .rang-ligne__stat {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .rang-ligne__stat--j {
+    grid-area: j;
+  }
+  .rang-ligne__stat--v {
+    grid-area: v;
+  }
+  .rang-ligne__stat--moins {
+    grid-area: moins;
+  }
+  .rang-ligne__stat--plus {
+    grid-area: plus;
+  }
+
+  .rang-ligne__stat-libelle {
+    display: none;
+  }
+
+  .rang-ligne--entete {
+    display: grid;
+    padding-top: 0.625rem;
+    padding-bottom: 0.625rem;
+    background: var(--gravier-creux);
+    font-family: var(--data);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--acier);
+  }
+
+  .rang-ligne--entete span {
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  .rang-ligne--entete .rang-ligne__rang,
+  .rang-ligne--entete .rang-ligne__nom,
+  .rang-ligne--entete .rang-ligne__mesure {
+    text-align: left;
+  }
+
+  .rang-ligne--entete .rang-ligne__rang,
+  .rang-ligne--entete .rang-ligne__nom,
+  .rang-ligne--entete .rang-ligne__diff {
+    font-family: inherit;
+    font-size: inherit;
+    font-weight: 600;
+    color: inherit;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Impression : la feuille qu'on punaise à la buvette.
+   -------------------------------------------------------------------------- */
+
+@media print {
+  :root {
+    --gravier: #fff;
+    --craie: #fff;
+    --ombre: none;
+  }
+
+  body {
+    background: #fff;
+  }
+
+  .onglets,
+  .entete__outils,
+  .tours,
+  .avis,
+  .saisie,
+  .mesure,
+  .bouton {
+    display: none !important;
+  }
+
+  .appli {
+    max-width: none;
+    padding: 0;
+  }
+
+  .classement,
+  .match,
+  .equipes {
+    box-shadow: none;
+    border-color: #999;
+    break-inside: avoid;
+  }
+
+  .rang-ligne {
+    break-inside: avoid;
+  }
+
+  .match {
+    animation: none;
+  }
+}
+
+.lecture-seule {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
