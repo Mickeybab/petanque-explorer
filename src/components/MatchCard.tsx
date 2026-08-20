@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { BYE_SCORE_AGAINST, BYE_SCORE_FOR, type Match } from '../domain/types'
 import type { Action } from '../domain/tournament'
 
@@ -9,10 +10,22 @@ type Props = {
   delai?: number
 }
 
-const versScore = (valeur: string): number | null => (valeur === '' ? null : Number(valeur))
+const versTexte = (valeur: number | null): string => (valeur === null ? '' : String(valeur))
+const versScore = (texte: string): number | null => (texte === '' ? null : Number(texte))
 
 export function MatchCard({ match, nomDe, dispatch, delai = 0 }: Props) {
   const apparition = { animationDelay: `${delai}ms` }
+
+  // La saisie reste locale jusqu'à validation : sans cela, taper le « 1 » de 13
+  // enregistrerait déjà un score et ferait basculer la partie en terminée sous
+  // les doigts de l'organisateur.
+  const [brouillonA, setBrouillonA] = useState(versTexte(match.scoreA))
+  const [brouillonB, setBrouillonB] = useState(versTexte(match.scoreB))
+
+  useEffect(() => {
+    setBrouillonA(versTexte(match.scoreA))
+    setBrouillonB(versTexte(match.scoreB))
+  }, [match.scoreA, match.scoreB])
 
   if (match.teamBId === null) {
     return (
@@ -36,17 +49,34 @@ export function MatchCard({ match, nomDe, dispatch, delai = 0 }: Props) {
 
   const { scoreA, scoreB } = match
   const joue = scoreA !== null && scoreB !== null
-  const classeCamp = (aGagne: boolean): string =>
-    `camp ${!joue ? 'camp--attente' : aGagne ? 'camp--vainqueur' : ''}`.trim()
 
-  const saisir = (cote: 'A' | 'B', valeur: string): void => {
+  const modifie = brouillonA !== versTexte(scoreA) || brouillonB !== versTexte(scoreB)
+  // Un score à moitié saisi ne veut rien dire : on attend les deux, ou aucun.
+  const complet =
+    (brouillonA !== '' && brouillonB !== '') || (brouillonA === '' && brouillonB === '')
+
+  const valider = (): void => {
+    if (!modifie || !complet) return
     dispatch({
       type: 'setScore',
       matchId: match.id,
-      scoreA: cote === 'A' ? versScore(valeur) : scoreA,
-      scoreB: cote === 'B' ? versScore(valeur) : scoreB,
+      scoreA: versScore(brouillonA),
+      scoreB: versScore(brouillonB),
     })
   }
+
+  const annuler = (): void => {
+    setBrouillonA(versTexte(scoreA))
+    setBrouillonB(versTexte(scoreB))
+  }
+
+  const auClavier = (e: React.KeyboardEvent<HTMLInputElement>): void => {
+    if (e.key === 'Enter') valider()
+    if (e.key === 'Escape') annuler()
+  }
+
+  const classeCamp = (aGagne: boolean): string =>
+    `camp ${!joue ? 'camp--attente' : aGagne ? 'camp--vainqueur' : ''}`.trim()
 
   const nomA = nomDe(match.teamAId)
   const nomB = nomDe(match.teamBId)
@@ -61,11 +91,14 @@ export function MatchCard({ match, nomDe, dispatch, delai = 0 }: Props) {
           </span>
         )}
         {match.isRematch === true && (
-          <span className="etiquette etiquette--alerte" title="Plus aucun adversaire inédit n’était disponible">
+          <span
+            className="etiquette etiquette--alerte"
+            title="Plus aucun adversaire inédit n’était disponible"
+          >
             Revanche
           </span>
         )}
-        {joue && <span>{scoreA === scoreB ? 'Égalité' : 'Terminée'}</span>}
+        {joue && !modifie && <span>{scoreA === scoreB ? 'Égalité' : 'Terminée'}</span>}
       </header>
 
       <div className={classeCamp(joue && (scoreA as number) > (scoreB as number))}>
@@ -77,8 +110,9 @@ export function MatchCard({ match, nomDe, dispatch, delai = 0 }: Props) {
           min={0}
           placeholder="–"
           aria-label={`Score de ${nomA}`}
-          value={scoreA ?? ''}
-          onChange={(e) => saisir('A', e.target.value)}
+          value={brouillonA}
+          onChange={(e) => setBrouillonA(e.target.value)}
+          onKeyDown={auClavier}
         />
       </div>
 
@@ -91,10 +125,27 @@ export function MatchCard({ match, nomDe, dispatch, delai = 0 }: Props) {
           min={0}
           placeholder="–"
           aria-label={`Score de ${nomB}`}
-          value={scoreB ?? ''}
-          onChange={(e) => saisir('B', e.target.value)}
+          value={brouillonB}
+          onChange={(e) => setBrouillonB(e.target.value)}
+          onKeyDown={auClavier}
         />
       </div>
+
+      {modifie && (
+        <div className="match__actions">
+          <button className="bouton bouton--discret" type="button" onClick={annuler}>
+            Annuler
+          </button>
+          <button
+            className="bouton bouton--primaire bouton--compact"
+            type="button"
+            disabled={!complet}
+            onClick={valider}
+          >
+            {joue ? 'Corriger le score' : 'Valider le score'}
+          </button>
+        </div>
+      )}
     </article>
   )
 }

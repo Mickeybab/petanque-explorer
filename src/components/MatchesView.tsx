@@ -66,7 +66,7 @@ export function MatchesView({ tournament, dispatch, nomDe }: Props) {
       <p className="section__note">
         {termine
           ? 'Rendez-vous au classement. Un score reste corrigeable ici.'
-          : 'Saisissez un score dès qu’une partie se termine : les équipes libérées repartent aussitôt.'}
+          : 'Saisissez les deux scores puis validez : les équipes libérées repartent aussitôt.'}
       </p>
 
       {enCours.length > 0 && (
@@ -100,7 +100,9 @@ export function MatchesView({ tournament, dispatch, nomDe }: Props) {
       {jouees.length > 0 && (
         <div className="jouees">
           <h3 className="section__titre">Parties jouées</h3>
-          <p className="section__note">Une erreur de score se corrige ici à tout moment.</p>
+          <p className="section__note">
+            Une erreur se corrige ici : modifiez le score, puis validez la correction.
+          </p>
           <div className="matchs">
             {jouees.map((match) => (
               <MatchCard key={match.id} match={match} nomDe={nomDe} dispatch={dispatch} />

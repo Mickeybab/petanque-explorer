@@ -29,11 +29,12 @@ npm run build    # produit dist/, à ouvrir ou à déposer sur un hébergement s
 
 1. **Équipes** — saisir les doublettes, une par ligne (Entrée pour enchaîner).
    Les inscriptions se ferment au lancement ; les noms restent corrigeables.
-2. **Parties** — lancer le tournoi, puis saisir un score dès qu'une partie se
-   termine. Les équipes libérées repartent immédiatement contre une équipe au
-   même bilan. Celles qui patientent, et la raison de leur attente, sont
-   listées sous « Au repos ». Un score déjà saisi reste corrigeable à tout
-   moment.
+2. **Parties** — lancer le tournoi, puis saisir les deux scores d'une partie
+   terminée et **valider** (bouton, ou touche Entrée ; Échap annule). Rien n'est
+   enregistré avant la validation : on peut taper un 13 sans que la carte bouge.
+   Les équipes libérées repartent alors immédiatement contre une équipe au même
+   bilan. Celles qui patientent, et la raison de leur attente, sont listées sous
+   « Au repos ». Un score déjà saisi reste corrigeable de la même façon.
 3. **Classement** — mis à jour en continu, imprimable tel quel (Ctrl/Cmd + P).
 
 Le tournoi est enregistré dans le navigateur à chaque modification. Le bouton
