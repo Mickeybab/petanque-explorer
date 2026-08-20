@@ -19,6 +19,11 @@ export type Match = {
   scoreB: number | null
   /** Vrai quand l'appariement a dû recréer une opposition déjà jouée. */
   isRematch?: boolean
+  /**
+   * Vrai quand les deux équipes n'avaient pas le même bilan : leur groupe
+   * était impair, l'une d'elles est descendue d'un cran pour jouer quand même.
+   */
+  isFloater?: boolean
 }
 
 export type Round = {

@@ -134,6 +134,22 @@ describe('parseTournament', () => {
     expect(parseTournament(mauvaisScore)).toBeNull()
   })
 
+  test('conserve le marqueur de flotteur', () => {
+    const avecFlotteur = {
+      ...valide,
+      rounds: [
+        {
+          number: 1,
+          matches: [
+            { id: 'm', round: 1, teamAId: 't1', teamBId: 't2', scoreA: null, scoreB: null, isFloater: true },
+          ],
+        },
+      ],
+    }
+
+    expect(parseTournament(avecFlotteur)?.rounds[0]?.matches[0]?.isFloater).toBe(true)
+  })
+
   test('conserve le marqueur de revanche', () => {
     const avecRevanche = {
       ...valide,

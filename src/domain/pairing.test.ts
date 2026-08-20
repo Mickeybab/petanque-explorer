@@ -1,178 +1,295 @@
 import { describe, expect, test } from 'vitest'
-import { pairRound } from './pairing'
+import { advancePairings } from './pairing'
+import { recordKey, teamProgress } from './progress'
+import { isMatchPlayed } from './standings'
 import { makeTournament } from './__fixtures__/build'
 import type { Match, Tournament } from './types'
 
 const noms = (n: number): string[] =>
   Array.from({ length: n }, (_, i) => `Équipe ${String(i + 1).padStart(2, '0')}`)
 
-/** Clé d'opposition indépendante de l'ordre des deux équipes. */
+const tousLesMatchs = (t: Tournament): Match[] => t.rounds.flatMap((r) => r.matches)
+
+const enCours = (t: Tournament): Match[] =>
+  tousLesMatchs(t).filter((m) => m.teamBId !== null && !isMatchPlayed(m))
+
 const paire = (m: Match): string => [m.teamAId, m.teamBId].sort().join('|')
 
-/**
- * Joue un tournoi complet : à chaque tour on apparie, puis on remplit les
- * scores en faisant gagner l'équipe au plus petit numéro. Ce classement
- * strictement ordonné est le pire cas pour la contrainte « pas de revanche ».
- */
-function jouerTournoi(nbEquipes: number, nbTours: number): Tournament {
-  const tournoi = makeTournament(noms(nbEquipes))
-  for (let r = 1; r <= nbTours; r++) {
-    const matches = pairRound(tournoi, r).map((m) => {
-      if (m.teamBId === null) return m
-      const favori = m.teamAId < m.teamBId ? 'A' : 'B'
-      return { ...m, scoreA: favori === 'A' ? 13 : 6, scoreB: favori === 'A' ? 6 : 13 }
-    })
-    tournoi.rounds.push({ number: r, matches })
-  }
-  return tournoi
+/** Démarre un tournoi de n équipes : le premier appariement est fait. */
+const demarrer = (n: number, seed = 1): Tournament =>
+  advancePairings(makeTournament(noms(n), [], { seed }))
+
+/** Saisit le score d'un match puis relance l'appariement. */
+function terminer(t: Tournament, matchId: string, aGagne = true): Tournament {
+  const rounds = t.rounds.map((r) => ({
+    ...r,
+    matches: r.matches.map((m) =>
+      m.id === matchId ? { ...m, scoreA: aGagne ? 13 : 7, scoreB: aGagne ? 7 : 13 } : m,
+    ),
+  }))
+  return advancePairings({ ...t, rounds })
 }
 
-describe('pairRound — composition du tour', () => {
-  test('un effectif pair produit un match par paire d’équipes', () => {
-    const matches = pairRound(makeTournament(noms(8)), 1)
+/**
+ * Joue le tournoi jusqu'au bout, un match à la fois, dans l'ordre où ils
+ * apparaissent : c'est le pire cas pour l'appariement au fil de l'eau.
+ */
+function jouerTout(n: number, seed = 1, aGagne: (i: number) => boolean = (i) => i % 3 !== 0): Tournament {
+  let t = demarrer(n, seed)
+  for (let i = 0; enCours(t).length > 0 && i < 500; i++) {
+    t = terminer(t, (enCours(t)[0] as Match).id, aGagne(i))
+  }
+  return t
+}
 
-    expect(matches).toHaveLength(4)
-    expect(matches.every((m) => m.teamBId !== null)).toBe(true)
-  })
-
-  test('chaque équipe joue exactement une fois par tour', () => {
-    const matches = pairRound(makeTournament(noms(8)), 1)
-
-    const engagees = matches.flatMap((m) => [m.teamAId, m.teamBId]).filter((id) => id !== null)
-    expect(new Set(engagees).size).toBe(8)
-  })
-
-  test('un effectif impair produit une équipe exempte et personne d’oublié', () => {
-    const matches = pairRound(makeTournament(noms(7)), 1)
-
-    const byes = matches.filter((m) => m.teamBId === null)
-    expect(byes).toHaveLength(1)
-    expect(matches).toHaveLength(4)
-
-    const engagees = matches.flatMap((m) => [m.teamAId, m.teamBId]).filter((id) => id !== null)
-    expect(new Set(engagees).size).toBe(7)
-  })
-
-  test('les matchs générés portent le bon tour, des scores vides et des ids uniques', () => {
-    const matches = pairRound(makeTournament(noms(6)), 3)
-
-    expect(matches.every((m) => m.round === 3)).toBe(true)
-    expect(matches.every((m) => m.scoreA === null && m.scoreB === null)).toBe(true)
-    expect(new Set(matches.map((m) => m.id)).size).toBe(matches.length)
-  })
-
-  test('un tournoi à une seule équipe la déclare exempte', () => {
-    const matches = pairRound(makeTournament(noms(1)), 1)
-
-    expect(matches).toHaveLength(1)
-    expect(matches[0]?.teamBId).toBeNull()
-  })
-
-  test('un tournoi sans équipe ne produit aucun match', () => {
-    expect(pairRound(makeTournament([]), 1)).toEqual([])
-  })
-})
-
-describe('pairRound — reproductibilité', () => {
-  test('deux appels sur le même tournoi donnent le même appariement', () => {
-    const tournoi = makeTournament(noms(10))
-
-    expect(pairRound(tournoi, 1)).toEqual(pairRound(tournoi, 1))
-  })
-
-  test('deux graines différentes donnent des tirages différents au tour 1', () => {
-    const a = pairRound(makeTournament(noms(12), [], { seed: 1 }), 1)
-    const b = pairRound(makeTournament(noms(12), [], { seed: 2 }), 1)
-
-    expect(a.map(paire)).not.toEqual(b.map(paire))
-  })
-})
-
-describe('pairRound — pas de revanche', () => {
-  test.each([8, 12, 16, 24, 40])(
-    'aucune équipe ne rejoue le même adversaire sur 4 tours (%i équipes)',
-    (nbEquipes) => {
-      const tournoi = jouerTournoi(nbEquipes, 4)
-
-      const oppositions = tournoi.rounds
-        .flatMap((r) => r.matches)
-        .filter((m) => m.teamBId !== null)
-        .map(paire)
-
-      expect(new Set(oppositions).size).toBe(oppositions.length)
-    },
-  )
-
-  test.each([7, 13, 21])(
-    'aucune revanche non plus sur un effectif impair (%i équipes)',
-    (nbEquipes) => {
-      const tournoi = jouerTournoi(nbEquipes, 4)
-
-      const oppositions = tournoi.rounds
-        .flatMap((r) => r.matches)
-        .filter((m) => m.teamBId !== null)
-        .map(paire)
-
-      expect(new Set(oppositions).size).toBe(oppositions.length)
-    },
-  )
-
-  test('quand aucune solution n’existe, la revanche est autorisée et signalée', () => {
-    // Deux équipes seulement : le tour 2 ne peut être qu'une revanche.
-    const tournoi = makeTournament(['Alice', 'Bob'], [[['Alice', 'Bob', 13, 4]]])
-
-    const matches = pairRound(tournoi, 2)
-
-    expect(matches).toHaveLength(1)
-    expect(matches[0]?.isRematch).toBe(true)
-  })
-
-  test('un appariement sans revanche n’est jamais signalé comme revanche', () => {
-    const matches = pairRound(makeTournament(noms(8)), 1)
-
-    expect(matches.every((m) => m.isRematch !== true)).toBe(true)
-  })
-})
-
-describe('pairRound — bye tournant', () => {
-  test('sur un effectif impair, une équipe différente est exempte à chaque tour', () => {
-    const tournoi = jouerTournoi(9, 4)
-
-    const exemptees = tournoi.rounds
-      .flatMap((r) => r.matches)
-      .filter((m) => m.teamBId === null)
-      .map((m) => m.teamAId)
-
-    expect(exemptees).toHaveLength(4)
-    expect(new Set(exemptees).size).toBe(4)
-  })
-
-  test('le bye redescend sur une équipe déjà exemptée seulement si tout le monde l’a été', () => {
-    // 3 équipes, 4 tours : au 4e tour, les 3 ont déjà eu leur bye.
-    const tournoi = jouerTournoi(3, 4)
-
-    const exemptees = tournoi.rounds
-      .flatMap((r) => r.matches)
-      .filter((m) => m.teamBId === null)
-      .map((m) => m.teamAId)
-
-    expect(new Set(exemptees).size).toBe(3)
-  })
-})
-
-describe('pairRound — système suisse', () => {
-  test('au tour 2, les équipes s’affrontent à nombre de victoires égal', () => {
-    const tournoi = jouerTournoi(8, 1)
-
-    const matches = pairRound(tournoi, 2)
-    const vainqueursTour1 = new Set(
-      tournoi.rounds[0]?.matches.map((m) =>
-        (m.scoreA as number) > (m.scoreB as number) ? m.teamAId : m.teamBId,
-      ),
-    )
-
-    for (const m of matches) {
-      expect(vainqueursTour1.has(m.teamAId)).toBe(vainqueursTour1.has(m.teamBId))
+/** Le bilan d'une équipe juste avant sa partie numéro `round`. */
+function bilanAvant(t: Tournament, teamId: string, round: number): string {
+  let played = 0
+  let won = 0
+  let lost = 0
+  for (const m of tousLesMatchs(t)) {
+    if (m.round >= round) continue
+    if (m.teamBId === null) {
+      if (m.teamAId !== teamId) continue
+      played += 1
+      won += 1
+      continue
     }
+    if (!isMatchPlayed(m)) continue
+    const cote = m.teamAId === teamId ? 'A' : m.teamBId === teamId ? 'B' : null
+    if (!cote) continue
+    const pour = (cote === 'A' ? m.scoreA : m.scoreB) as number
+    const contre = (cote === 'A' ? m.scoreB : m.scoreA) as number
+    played += 1
+    if (pour > contre) won += 1
+    else if (pour < contre) lost += 1
+  }
+  return recordKey({ played, won, lost })
+}
+
+/** Nombre de victoires d'une équipe juste avant sa partie numéro `round`. */
+function victoiresAvant(t: Tournament, teamId: string, round: number): number {
+  let victoires = 0
+  for (const m of tousLesMatchs(t)) {
+    if (m.round >= round) continue
+    if (m.teamBId === null) {
+      if (m.teamAId === teamId) victoires += 1
+      continue
+    }
+    if (!isMatchPlayed(m)) continue
+    const cote = m.teamAId === teamId ? 'A' : m.teamBId === teamId ? 'B' : null
+    if (!cote) continue
+    const pour = (cote === 'A' ? m.scoreA : m.scoreB) as number
+    const contre = (cote === 'A' ? m.scoreB : m.scoreA) as number
+    if (pour > contre) victoires += 1
+  }
+  return victoires
+}
+
+describe('advancePairings — démarrage', () => {
+  test('apparie toutes les équipes au premier appel', () => {
+    const t = demarrer(8)
+
+    expect(tousLesMatchs(t)).toHaveLength(4)
+    expect(new Set(tousLesMatchs(t).flatMap((m) => [m.teamAId, m.teamBId])).size).toBe(8)
+  })
+
+  test('n’apparie rien sans équipe', () => {
+    expect(tousLesMatchs(demarrer(0))).toEqual([])
+  })
+
+  test('deux graines différentes donnent des tirages différents', () => {
+    expect(tousLesMatchs(demarrer(12, 1)).map(paire)).not.toEqual(
+      tousLesMatchs(demarrer(12, 2)).map(paire),
+    )
+  })
+
+  test('deux appels sur le même état donnent le même résultat', () => {
+    const base = makeTournament(noms(10))
+
+    expect(advancePairings(base)).toEqual(advancePairings(base))
+  })
+
+  test('relancer sur un tournoi déjà apparié n’ajoute rien', () => {
+    const t = demarrer(8)
+
+    expect(advancePairings(t)).toEqual(t)
+  })
+})
+
+describe('advancePairings — enchaînement au fil de l’eau', () => {
+  test('une seule équipe libérée attend : personne ne repart seul', () => {
+    const t = demarrer(12)
+    const premier = enCours(t)[0] as Match
+
+    const apres = terminer(t, premier.id)
+
+    expect(tousLesMatchs(apres)).toHaveLength(6)
+  })
+
+  test('deux matchs terminés relancent aussitôt les quatre équipes', () => {
+    const t = demarrer(12)
+    const [m1, m2] = enCours(t) as [Match, Match]
+
+    const apres = terminer(terminer(t, m1.id), m2.id)
+
+    // Les 6 matchs du tour 1, plus 2 nouveaux : gagnants ensemble, perdants ensemble.
+    const nouveaux = tousLesMatchs(apres).filter((m) => m.round === 2)
+    expect(nouveaux).toHaveLength(2)
+    expect(new Set(nouveaux.flatMap((m) => [m.teamAId, m.teamBId]))).toEqual(
+      new Set([m1.teamAId, m1.teamBId, m2.teamAId, m2.teamBId]),
+    )
+  })
+
+  test('les deux gagnants se retrouvent, les deux perdants aussi', () => {
+    const t = demarrer(12)
+    const [m1, m2] = enCours(t) as [Match, Match]
+
+    const apres = terminer(terminer(t, m1.id, true), m2.id, true)
+    const nouveaux = tousLesMatchs(apres).filter((m) => m.round === 2)
+    const gagnants = new Set([m1.teamAId, m2.teamAId])
+
+    for (const m of nouveaux) {
+      expect(gagnants.has(m.teamAId)).toBe(gagnants.has(m.teamBId as string))
+    }
+  })
+})
+
+describe('advancePairings — gagnant contre gagnant', () => {
+  test.each([8, 12, 16, 24])(
+    'toute opposition non signalée « flotteur » réunit deux bilans identiques (%i équipes)',
+    (n) => {
+      const t = jouerTout(n)
+
+      for (const m of tousLesMatchs(t)) {
+        if (m.teamBId === null || m.isFloater === true) continue
+        expect(bilanAvant(t, m.teamAId, m.round)).toBe(bilanAvant(t, m.teamBId, m.round))
+      }
+    },
+  )
+
+  test.each([8, 12, 16, 24])(
+    'un flotteur reste l’exception, jamais la règle (%i équipes)',
+    (n) => {
+      const t = jouerTout(n)
+      const matchs = tousLesMatchs(t).filter((m) => m.teamBId !== null)
+      const flotteurs = matchs.filter((m) => m.isFloater === true)
+
+      expect(flotteurs.length).toBeLessThan(matchs.length / 3)
+    },
+  )
+
+  test.each([8, 10, 12, 16, 20, 24])(
+    'un flotteur ne descend que d’un cran (%i équipes)',
+    (n) => {
+      const t = jouerTout(n)
+
+      for (const m of tousLesMatchs(t).filter((x) => x.isFloater === true)) {
+        const a = victoiresAvant(t, m.teamAId, m.round)
+        const b = victoiresAvant(t, m.teamBId as string, m.round)
+        expect(Math.abs(a - b)).toBeLessThanOrEqual(2)
+      }
+    },
+  )
+})
+
+describe('advancePairings — flotteur', () => {
+  test('un groupe impair fait descendre une équipe d’un cran', () => {
+    // 6 équipes : le tour 1 donne 3 gagnants et 3 perdants, donc un flotteur.
+    const t = jouerTout(6)
+    const flotteurs = tousLesMatchs(t).filter((m) => m.isFloater === true)
+
+    expect(flotteurs.length).toBeGreaterThan(0)
+    for (const m of flotteurs) {
+      const a = bilanAvant(t, m.teamAId, m.round)
+      const b = bilanAvant(t, m.teamBId as string, m.round)
+      expect(a).not.toBe(b)
+    }
+  })
+
+  test('un effectif pair ne produit jamais d’équipe exempte', () => {
+    for (const n of [6, 8, 10, 12, 14]) {
+      const t = jouerTout(n)
+      expect(tousLesMatchs(t).filter((m) => m.teamBId === null)).toEqual([])
+    }
+  })
+})
+
+describe('advancePairings — garanties du tournoi', () => {
+  test.each([6, 7, 8, 9, 12, 13, 16, 21, 24])(
+    'chaque équipe joue exactement quatre parties (%i équipes)',
+    (n) => {
+      const t = jouerTout(n)
+      const avancement = teamProgress(t)
+
+      for (const team of t.teams) {
+        expect(avancement.get(team.id)?.played).toBe(4)
+      }
+    },
+  )
+
+  test.each([7, 8, 9, 10, 12, 13, 16, 20, 21, 24])(
+    'aucune équipe ne rejoue le même adversaire (%i équipes)',
+    (n) => {
+      const oppositions = tousLesMatchs(jouerTout(n))
+        .filter((m) => m.teamBId !== null)
+        .map(paire)
+
+      expect(new Set(oppositions).size).toBe(oppositions.length)
+    },
+  )
+
+  test('à six équipes, les adversaires frais finissent par manquer : la revanche est signalée', () => {
+    // 6 équipes et 4 tours : chacune doit affronter 4 des 5 autres. Les
+    // contraintes de bilan rendent parfois la revanche inévitable — elle doit
+    // alors être visible, jamais silencieuse.
+    for (let seed = 1; seed <= 25; seed++) {
+      const t = jouerTout(6, seed)
+      const oppositions = tousLesMatchs(t)
+        .filter((m) => m.teamBId !== null)
+        .map(paire)
+      const rejouees = oppositions.length - new Set(oppositions).size
+      const signalees = tousLesMatchs(t).filter((m) => m.isRematch === true).length
+
+      expect(signalees).toBe(rejouees)
+    }
+  })
+
+  test.each([6, 8, 10, 12, 14, 16, 20, 24])(
+    'un effectif pair ne distribue jamais de victoire par forfait (%i équipes)',
+    (n) => {
+      for (let seed = 1; seed <= 10; seed++) {
+        expect(tousLesMatchs(jouerTout(n, seed)).filter((m) => m.teamBId === null)).toEqual([])
+      }
+    },
+  )
+
+  test.each([7, 9, 13, 21])(
+    'sur un effectif impair, une équipe différente est exempte à chaque fois (%i équipes)',
+    (n) => {
+      const exemptees = tousLesMatchs(jouerTout(n))
+        .filter((m) => m.teamBId === null)
+        .map((m) => m.teamAId)
+
+      expect(exemptees.length).toBe(4)
+      expect(new Set(exemptees).size).toBe(4)
+    },
+  )
+
+  test('une équipe ne prend jamais plus d’une partie d’avance', () => {
+    let t = demarrer(12)
+    for (let i = 0; enCours(t).length > 0 && i < 500; i++) {
+      const avancement = [...teamProgress(t).values()].map((p) => p.assigned)
+      expect(Math.max(...avancement) - Math.min(...avancement)).toBeLessThanOrEqual(1)
+      t = terminer(t, (enCours(t)[0] as Match).id, i % 2 === 0)
+    }
+  })
+
+  test('les matchs générés portent des identifiants uniques et des scores vides', () => {
+    const t = demarrer(9)
+    const nouveaux = tousLesMatchs(t).filter((m) => m.teamBId !== null)
+
+    expect(new Set(tousLesMatchs(t).map((m) => m.id)).size).toBe(tousLesMatchs(t).length)
+    expect(nouveaux.every((m) => m.scoreA === null && m.scoreB === null)).toBe(true)
   })
 })

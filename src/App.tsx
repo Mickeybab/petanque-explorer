@@ -1,23 +1,23 @@
 import { useMemo, useState } from 'react'
 import { AppHeader } from './components/AppHeader'
-import { RoundView } from './components/RoundView'
+import { MatchesView } from './components/MatchesView'
 import { StandingsTable } from './components/StandingsTable'
 import { TeamsSetup } from './components/TeamsSetup'
-import { hasStarted } from './domain/tournament'
+import { hasStarted, ongoingMatches } from './domain/tournament'
 import { useTournament } from './useTournament'
 
-type Onglet = 'equipes' | 'tours' | 'classement'
+type Onglet = 'equipes' | 'parties' | 'classement'
 
 const LIBELLES: Record<Onglet, string> = {
   equipes: 'Équipes',
-  tours: 'Tours',
+  parties: 'Parties',
   classement: 'Classement',
 }
 
 export function App() {
   const { tournament, dispatch, sauvegardeActive } = useTournament()
   const [onglet, setOnglet] = useState<Onglet>(() =>
-    tournament.rounds.length > 0 ? 'tours' : 'equipes',
+    tournament.rounds.length > 0 ? 'parties' : 'equipes',
   )
   const [erreur, setErreur] = useState<string | null>(null)
 
@@ -29,7 +29,7 @@ export function App() {
 
   const compteur: Record<Onglet, string | null> = {
     equipes: String(tournament.teams.length),
-    tours: hasStarted(tournament) ? `${tournament.rounds.length}/${tournament.totalRounds}` : null,
+    parties: hasStarted(tournament) ? String(ongoingMatches(tournament).length) : null,
     classement: null,
   }
 
@@ -71,8 +71,8 @@ export function App() {
 
       <main>
         {onglet === 'equipes' && <TeamsSetup tournament={tournament} dispatch={dispatch} />}
-        {onglet === 'tours' && (
-          <RoundView tournament={tournament} dispatch={dispatch} nomDe={nomDe} />
+        {onglet === 'parties' && (
+          <MatchesView tournament={tournament} dispatch={dispatch} nomDe={nomDe} />
         )}
         {onglet === 'classement' && <StandingsTable tournament={tournament} />}
       </main>

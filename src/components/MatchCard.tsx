@@ -3,7 +3,6 @@ import type { Action } from '../domain/tournament'
 
 type Props = {
   match: Match
-  numero: number
   nomDe: (teamId: string) => string
   dispatch: (action: Action) => void
   /** Décalage d'apparition, pour que le tirage se dévoile carte après carte. */
@@ -12,14 +11,15 @@ type Props = {
 
 const versScore = (valeur: string): number | null => (valeur === '' ? null : Number(valeur))
 
-export function MatchCard({ match, numero, nomDe, dispatch, delai = 0 }: Props) {
+export function MatchCard({ match, nomDe, dispatch, delai = 0 }: Props) {
   const apparition = { animationDelay: `${delai}ms` }
 
   if (match.teamBId === null) {
     return (
       <article className="match match--bye" style={apparition}>
         <header className="match__entete">
-          <span>Exempte</span>
+          <span>Partie {match.round}</span>
+          <span className="etiquette">Exempte</span>
         </header>
         <div className="camp camp--vainqueur">
           <span className="camp__nom">{nomDe(match.teamAId)}</span>
@@ -28,7 +28,7 @@ export function MatchCard({ match, numero, nomDe, dispatch, delai = 0 }: Props) 
           </span>
         </div>
         <p className="match__mention">
-          Ne joue pas ce tour et marque {BYE_SCORE_FOR}-{BYE_SCORE_AGAINST}.
+          Aucun adversaire disponible : marque {BYE_SCORE_FOR}-{BYE_SCORE_AGAINST}.
         </p>
       </article>
     )
@@ -54,9 +54,18 @@ export function MatchCard({ match, numero, nomDe, dispatch, delai = 0 }: Props) 
   return (
     <article className="match" style={apparition}>
       <header className="match__entete">
-        <span>Match {numero}</span>
-        {match.isRematch === true && <span className="etiquette">Revanche</span>}
-        {joue && <span>{scoreA === scoreB ? 'Égalité' : 'Terminé'}</span>}
+        <span>Partie {match.round}</span>
+        {match.isFloater === true && (
+          <span className="etiquette" title="Groupe impair : une équipe est descendue d’un cran">
+            Flotteur
+          </span>
+        )}
+        {match.isRematch === true && (
+          <span className="etiquette etiquette--alerte" title="Plus aucun adversaire inédit n’était disponible">
+            Revanche
+          </span>
+        )}
+        {joue && <span>{scoreA === scoreB ? 'Égalité' : 'Terminée'}</span>}
       </header>
 
       <div className={classeCamp(joue && (scoreA as number) > (scoreB as number))}>

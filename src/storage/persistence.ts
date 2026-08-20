@@ -68,6 +68,7 @@ function parseMatch(raw: unknown, teamIds: ReadonlySet<string>): Match | null {
     scoreB: raw.scoreB,
   }
   if (raw.isRematch === true) match.isRematch = true
+  if (raw.isFloater === true) match.isFloater = true
   return match
 }
 

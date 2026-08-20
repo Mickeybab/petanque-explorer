@@ -911,3 +911,59 @@ input {
   clip-path: inset(50%);
   white-space: nowrap;
 }
+
+/* --------------------------------------------------------------------------
+   Équipes au repos et parties déjà jouées
+   -------------------------------------------------------------------------- */
+
+.attente {
+  margin-top: 1.75rem;
+  padding: 1rem 1.125rem;
+  border: 1px dashed var(--filet-fort);
+  border-radius: var(--rayon);
+}
+
+.attente__titre {
+  font-family: var(--data);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--acier);
+  margin: 0 0 0.75rem;
+}
+
+.attente__liste {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.attente__item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 0.625rem;
+}
+
+.attente__nom {
+  font-weight: 600;
+}
+
+.attente__motif {
+  font-size: 0.875rem;
+  color: var(--acier);
+}
+
+.jouees {
+  margin-top: 2.5rem;
+  padding-top: 1.75rem;
+  border-top: 1px solid var(--filet);
+}
+
+.etiquette--alerte {
+  background: rgba(163, 52, 31, 0.14);
+  color: #8a2c19;
+}

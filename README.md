@@ -1,9 +1,13 @@
 # Tournoi de pétanque — Labruyère-Dorsa
 
 Petite application web pour tenir le tournoi adulte en doublettes : on inscrit
-les équipes, l'application tire les quatre tours, on saisit un score par match
-et le classement se calcule tout seul. Elle remplace le classeur Excel des
-années précédentes.
+les équipes, l'application compose les oppositions au fil de l'eau, on saisit un
+score par partie et le classement se calcule tout seul. Elle remplace le
+classeur Excel des années précédentes.
+
+Chaque équipe joue quatre parties. Dès qu'une partie se termine, les deux
+équipes repartent contre des adversaires de leur niveau, sans attendre que les
+autres terrains se libèrent.
 
 Tout tourne dans le navigateur : pas de serveur, pas de compte, pas de réseau
 nécessaire sur le terrain.
@@ -24,11 +28,12 @@ npm run build    # produit dist/, à ouvrir ou à déposer sur un hébergement s
 ### Le jour J
 
 1. **Équipes** — saisir les doublettes, une par ligne (Entrée pour enchaîner).
-   Les inscriptions se ferment au tirage du tour 1 ; les noms restent
-   corrigeables ensuite.
-2. **Tours** — lancer le tirage, puis saisir les scores au fur et à mesure. Le
-   tour suivant ne se tire qu'une fois tous les scores du tour en cours entrés.
-   Un score déjà saisi reste corrigeable à tout moment.
+   Les inscriptions se ferment au lancement ; les noms restent corrigeables.
+2. **Parties** — lancer le tournoi, puis saisir un score dès qu'une partie se
+   termine. Les équipes libérées repartent immédiatement contre une équipe au
+   même bilan. Celles qui patientent, et la raison de leur attente, sont
+   listées sous « Au repos ». Un score déjà saisi reste corrigeable à tout
+   moment.
 3. **Classement** — mis à jour en continu, imprimable tel quel (Ctrl/Cmd + P).
 
 Le tournoi est enregistré dans le navigateur à chaque modification. Le bouton
@@ -36,13 +41,26 @@ Le tournoi est enregistré dans le navigateur à chaque modification. Le bouton
 
 ## Règles appliquées
 
-- **Format** : doublettes, 4 tours, un match par équipe et par tour.
-- **Appariement** : tour 1 tiré au sort ; tours 2 à 4 en système suisse — les
-  équipes de niveau proche se rencontrent, sans jamais rejouer un adversaire
-  déjà affronté. Si aucune combinaison sans revanche n'existe, l'application
-  en compose une et signale les matchs concernés.
-- **Effectif impair** : une équipe est exempte à chaque tour et marque 13-7.
-  L'application ne réexempte une équipe que si toutes y sont déjà passées.
+- **Format** : doublettes, quatre parties par équipe.
+- **Appariement** : la première partie est tirée au sort. Ensuite, deux équipes
+  ne s'affrontent que si elles ont **exactement le même bilan** — mêmes
+  victoires, mêmes défaites — et ne se sont **jamais rencontrées**. C'est le
+  système suisse, appliqué au fil de l'eau plutôt que tour par tour.
+- **Sans attendre les autres** : une équipe qui termine repart dès qu'une autre
+  équipe de son bilan se libère. Elle ne peut toutefois pas prendre plus d'une
+  partie d'avance sur la plus lente, faute de quoi quelques équipes rapides
+  joueraient le tournoi entre elles.
+- **Flotteur** : quand un groupe de bilan est impair — trois gagnants, par
+  exemple — une équipe descend d'un cran et affronte le groupe voisin. Ces
+  matchs portent le badge « Flotteur ». L'application ne descend jamais de plus
+  d'un cran tant qu'attendre reste possible.
+- **Effectif impair** : l'équipe qui reste sans adversaire possible est exempte
+  et marque 13-7. Le choix se fait une fois le tour joué, et jamais deux fois la
+  même équipe tant que d'autres n'y sont pas passées.
+- **Revanche** : dernier recours, quand plus aucun adversaire inédit n'existe.
+  Elle est alors signalée par un badge. Sur 400 tournois simulés de 6 à
+  40 équipes, cela n'est survenu qu'à 6 équipes — un effectif où chacune doit
+  affronter 4 des 5 autres.
 - **Classement** : parties gagnées, puis goal-average (Total + − Total −), puis
   points marqués. Les équipes strictement à égalité partagent le même rang.
 - **Scores** : entiers positifs libres — rien n'oblige le gagnant à 13, ce qui
@@ -57,9 +75,10 @@ React ni au navigateur : c'est elle qui porte les tests.
 | Fichier | Rôle |
 | --- | --- |
 | `src/domain/types.ts` | modèle de données |
+| `src/domain/progress.ts` | avancement de chaque équipe : bilan, partie en cours, exemptions |
 | `src/domain/standings.ts` | calcul du classement |
-| `src/domain/pairing.ts` | tirage au sort, appariement suisse, équipe exempte |
-| `src/domain/tournament.ts` | transitions d'état (reducer) et règles d'enchaînement |
+| `src/domain/pairing.ts` | tirage au sort, appariement suisse au fil de l'eau, flotteurs, équipe exempte |
+| `src/domain/tournament.ts` | transitions d'état (reducer) et relance automatique de l'appariement |
 | `src/domain/rng.ts` | aléatoire à graine, pour un tirage reproductible |
 | `src/storage/persistence.ts` | sauvegarde navigateur, validation des imports |
 | `src/components/` | interface React |
