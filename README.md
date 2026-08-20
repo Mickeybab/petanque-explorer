@@ -89,3 +89,12 @@ npm test         # suite Vitest du domaine
 npm run typecheck
 npm run build
 ```
+
+## Déploiement
+
+Chaque `push` sur `main` déclenche `.github/workflows/deploy.yml` : tests, build,
+puis publication du dossier `dist/` sur GitHub Pages. Le site est servi depuis
+`https://mickeybab.github.io/petanque-explorer/`.
+
+La configuration Vite utilise `base: './'`, donc les chemins restent relatifs :
+l'app fonctionne aussi bien dans ce sous-dossier qu'ouverte depuis le disque.
