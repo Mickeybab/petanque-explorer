@@ -60,7 +60,9 @@ export function MatchCard({ match, nomDe, dispatch, totalRounds, delai = 0 }: Pr
       <article className="match match--bye" style={apparition}>
         <header className="match__entete">
           <Reperage round={match.round} totalRounds={totalRounds} />
-          <span className="etiquette">Exempte</span>
+          <span className="match__etats">
+            <span className="etiquette">Exempte</span>
+          </span>
         </header>
         <div className="camp camp--vainqueur">
           <span className="camp__nom">{nomDe(match.teamAId)}</span>
@@ -113,20 +115,22 @@ export function MatchCard({ match, nomDe, dispatch, totalRounds, delai = 0 }: Pr
     <article className="match" style={apparition}>
       <header className="match__entete">
         <Reperage round={match.round} totalRounds={totalRounds} />
-        {match.isFloater === true && (
-          <span className="etiquette" title="Groupe impair : une équipe est descendue d’un cran">
-            Flotteur
-          </span>
-        )}
-        {match.isRematch === true && (
-          <span
-            className="etiquette etiquette--alerte"
-            title="Plus aucun adversaire inédit n’était disponible"
-          >
-            Revanche
-          </span>
-        )}
-        {joue && !modifie && <span>{scoreA === scoreB ? 'Égalité' : 'Terminée'}</span>}
+        <span className="match__etats">
+          {match.isFloater === true && (
+            <span className="etiquette" title="Groupe impair : une équipe est descendue d’un cran">
+              Flotteur
+            </span>
+          )}
+          {match.isRematch === true && (
+            <span
+              className="etiquette etiquette--alerte"
+              title="Plus aucun adversaire inédit n’était disponible"
+            >
+              Revanche
+            </span>
+          )}
+          {joue && !modifie && <span>{scoreA === scoreB ? 'Égalité' : 'Terminée'}</span>}
+        </span>
       </header>
 
       <div className={classeCamp(joue && (scoreA as number) > (scoreB as number))}>
