@@ -77,6 +77,7 @@ export function MatchesView({ tournament, dispatch, nomDe }: Props) {
               match={match}
               nomDe={nomDe}
               dispatch={dispatch}
+              totalRounds={tournament.totalRounds}
               delai={Math.min(index, 12) * 40}
             />
           ))}
@@ -105,7 +106,13 @@ export function MatchesView({ tournament, dispatch, nomDe }: Props) {
           </p>
           <div className="matchs">
             {jouees.map((match) => (
-              <MatchCard key={match.id} match={match} nomDe={nomDe} dispatch={dispatch} />
+              <MatchCard
+                key={match.id}
+                match={match}
+                nomDe={nomDe}
+                dispatch={dispatch}
+                totalRounds={tournament.totalRounds}
+              />
             ))}
           </div>
         </div>

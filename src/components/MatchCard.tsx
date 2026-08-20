@@ -6,14 +6,42 @@ type Props = {
   match: Match
   nomDe: (teamId: string) => string
   dispatch: (action: Action) => void
+  /** Nombre de parties du tournoi, pour situer celle-ci dans le parcours. */
+  totalRounds: number
   /** Décalage d'apparition, pour que le tirage se dévoile carte après carte. */
   delai?: number
+}
+
+/**
+ * « Partie 2 » suivi d'une jauge : les parties se mélangent dans la même liste,
+ * il faut voir immédiatement où en est chaque équipe dans son parcours.
+ */
+function Reperage({ round, totalRounds }: { round: number; totalRounds: number }) {
+  return (
+    <span className="match__partie">
+      Partie {round}
+      <span className="match__jauge" aria-hidden="true">
+        {Array.from({ length: totalRounds }, (_, i) => (
+          <i
+            key={i}
+            className={
+              i + 1 < round
+                ? 'match__cran match__cran--faite'
+                : i + 1 === round
+                  ? 'match__cran match__cran--ici'
+                  : 'match__cran'
+            }
+          />
+        ))}
+      </span>
+    </span>
+  )
 }
 
 const versTexte = (valeur: number | null): string => (valeur === null ? '' : String(valeur))
 const versScore = (texte: string): number | null => (texte === '' ? null : Number(texte))
 
-export function MatchCard({ match, nomDe, dispatch, delai = 0 }: Props) {
+export function MatchCard({ match, nomDe, dispatch, totalRounds, delai = 0 }: Props) {
   const apparition = { animationDelay: `${delai}ms` }
 
   // La saisie reste locale jusqu'à validation : sans cela, taper le « 1 » de 13
@@ -31,7 +59,7 @@ export function MatchCard({ match, nomDe, dispatch, delai = 0 }: Props) {
     return (
       <article className="match match--bye" style={apparition}>
         <header className="match__entete">
-          <span>Partie {match.round}</span>
+          <Reperage round={match.round} totalRounds={totalRounds} />
           <span className="etiquette">Exempte</span>
         </header>
         <div className="camp camp--vainqueur">
@@ -84,7 +112,7 @@ export function MatchCard({ match, nomDe, dispatch, delai = 0 }: Props) {
   return (
     <article className="match" style={apparition}>
       <header className="match__entete">
-        <span>Partie {match.round}</span>
+        <Reperage round={match.round} totalRounds={totalRounds} />
         {match.isFloater === true && (
           <span className="etiquette" title="Groupe impair : une équipe est descendue d’un cran">
             Flotteur

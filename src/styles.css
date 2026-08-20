@@ -983,3 +983,49 @@ input {
   padding: 0.5rem 1rem;
   font-size: 0.9375rem;
 }
+
+/* --------------------------------------------------------------------------
+   Repérage de la partie sur une carte
+
+   Les parties se mélangent dans la même liste : le numéro doit se lire sans
+   effort, et la jauge dit où en est l'équipe dans son parcours de quatre.
+   -------------------------------------------------------------------------- */
+
+.match__partie {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--display);
+  font-size: 0.9375rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  text-transform: none;
+  color: var(--ardoise);
+}
+
+.match__jauge {
+  display: inline-flex;
+  gap: 3px;
+}
+
+.match__cran {
+  width: 0.6875rem;
+  height: 0.1875rem;
+  border-radius: 2px;
+  background: var(--filet);
+}
+
+.match__cran--faite {
+  background: var(--acier);
+}
+
+.match__cran--ici {
+  background: var(--cochonnet);
+  width: 1.125rem;
+}
+
+@media print {
+  .match__cran--ici {
+    background: #000;
+  }
+}
